@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { projectAPI } from '../utils/api';
+import { projectAPI, authAPI, aboutAPI } from '../utils/api';
+import { formatDistanceToNow } from 'date-fns';
 
 interface AdminStats {
   totalVisitors: number;
@@ -245,8 +246,122 @@ const AdminDashboard: React.FC = () => {
     hasPrev: false
   });
 
+  // Settings state
+  const [settings, setSettings] = useState({
+    siteTitle: '',
+    siteDescription: '',
+    adminEmail: '',
+    theme: 'auto',
+    homepageMessage: '',
+    socialLinks: '',
+    logo: '',
+    maintenanceMode: false,
+  });
+
+  // User management state
+  const [users, setUsers] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [userError, setUserError] = useState<string | null>(null);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<any | null>(null);
+  const [userForm, setUserForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    role: 'user',
+    isActive: true,
+  });
+  const [savingUser, setSavingUser] = useState(false);
+  const [userFilters, setUserFilters] = useState({ role: 'all', page: 1, limit: 10 });
+  const [userPagination, setUserPagination] = useState({ currentPage: 1, totalPages: 1, totalUsers: 0, hasNext: false, hasPrev: false });
+
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [loadingActivity, setLoadingActivity] = useState(true);
+  const [activityError, setActivityError] = useState<string | null>(null);
+  const [activityLimit, setActivityLimit] = useState(5);
+
+  const [aboutData, setAboutData] = useState<any>(null);
+  const [loadingAbout, setLoadingAbout] = useState(false);
+  const [aboutError, setAboutError] = useState<string | null>(null);
+  const [savingAbout, setSavingAbout] = useState(false);
+
   const { user, isDeveloper, logout } = useAuth();
   const navigate = useNavigate();
+
+  const defaultAboutData = {
+    heading: 'About Me',
+    intro: "Passionate full-stack developer with a love for creating innovative solutions and pushing the boundaries of what's possible on the web.",
+    whoIAm: {
+      title: 'Who I Am',
+      paragraphs: [
+        "I'm Saransh Nimje, a passionate full-stack developer with a deep love for creating innovative digital solutions. My journey in technology began with a curiosity about how the web works, and it has evolved into a commitment to building scalable, user-centric applications that make a real impact.",
+        "With expertise in modern web technologies like React, Node.js, TypeScript, and SQL databases, I specialize in creating robust full-stack applications that deliver exceptional user experiences. I believe in writing clean, maintainable code and staying current with the latest industry trends.",
+        "When I'm not coding, you'll find me exploring new technologies, contributing to open-source projects, or sharing knowledge with the developer community. I'm always eager to learn and take on new challenges that push my skills forward.",
+        "My approach combines technical excellence with creative problem-solving, ensuring that every project I work on is not only functional but also delivers an outstanding user experience that exceeds expectations."
+      ]
+    },
+    skills: [
+      { name: 'React', level: 90, color: '#61DAFB' },
+      { name: 'Node.js', level: 85, color: '#339933' },
+      { name: 'TypeScript', level: 80, color: '#3178C6' },
+      { name: 'SQL/PostgreSQL', level: 75, color: '#336791' },
+      { name: 'Python', level: 70, color: '#3776AB' },
+      { name: 'AWS', level: 65, color: '#FF9900' }
+    ],
+    stats: [
+      { label: 'Years Experience', value: '3+' },
+      { label: 'Projects Completed', value: '50+' },
+      { label: 'Happy Clients', value: '30+' },
+      { label: 'Technologies', value: '20+' }
+    ],
+    experience: [
+      {
+        year: '2025 - Present',
+        title: 'B.Tech Student & Tech Enthusiast',
+        company: 'Baderia Global Institute of Engineering and Management',
+        description: 'Currently pursuing B.Tech in CSE (IoT & Cyber Security, including Blockchain Technology). Actively participating in coding clubs, technical workshops, and student-led tech initiatives.'
+      },
+      {
+        year: '2024 - 2025',
+        title: 'Personal Portfolio Project',
+        company: 'Self-Driven',
+        description: 'Designed and developed a personal portfolio website using React, Node.js, and TypeScript to showcase projects and skills.'
+      },
+      {
+        year: '2023 - 2024',
+        title: 'Open Source Contributor',
+        company: 'GitHub',
+        description: 'Contributed to open-source projects, focusing on bug fixes and feature enhancements in web development repositories.'
+      },
+      {
+        year: '2022 - 2023',
+        title: 'School Coding Club Member',
+        company: 'ADITYA CONVENT SR. SEC. SCHOOL',
+        description: 'Participated in school-level coding competitions and collaborated on group projects, building foundational programming skills.'
+      }
+    ],
+    education: [
+      {
+        year: '2025 - Present',
+        degree: 'B.Tech in CSE (IoT & Cyber Security, including Blockchain Technology)',
+        school: 'Baderia Global Institute of Engineering and Management, Jabalpur (RGPV Bhopal)',
+        description: 'Currently in 1st year, 1st semester. Started college journey in 2025.'
+      },
+      {
+        year: '2024 - 25',
+        degree: 'Class 12th (CBSE)',
+        school: 'ADITYA CONVENT SR. SEC. SCHOOL, JABALPUR',
+        description: 'Completed Class 12th from CBSE board.'
+      },
+      {
+        year: '2022 - 23',
+        degree: 'Class 10th (CBSE)',
+        school: 'ADITYA CONVENT SR. SEC. SCHOOL, JABALPUR',
+        description: 'Completed Class 10th from CBSE board.'
+      }
+    ]
+  };
 
   useEffect(() => {
     // Check if admin is authenticated
@@ -282,9 +397,11 @@ const AdminDashboard: React.FC = () => {
     { id: 'overview', name: 'Overview', icon: 'fas fa-chart-line' },
     { id: 'projects', name: 'Projects', icon: 'fas fa-code' },
     { id: 'blog', name: 'Blog Posts', icon: 'fas fa-blog' },
+    { id: 'about', name: 'About', icon: 'fas fa-user' },
     { id: 'contacts', name: 'Contacts', icon: 'fas fa-envelope' },
     { id: 'analytics', name: 'Analytics', icon: 'fas fa-chart-bar' },
-    { id: 'settings', name: 'Settings', icon: 'fas fa-cog' }
+    { id: 'settings', name: 'Settings', icon: 'fas fa-cog' },
+    ...(isDeveloper ? [{ id: 'users', name: 'Users', icon: 'fas fa-users' }] : [])
   ];
 
   const quickActions = [
@@ -604,6 +721,7 @@ const AdminDashboard: React.FC = () => {
 
   const openBlogModal = (blog?: BlogPost) => {
     if (blog) {
+      console.log('Editing blog:', blog); // <-- Add this line
       setSelectedBlog(blog);
       setBlogForm({
         title: blog.title,
@@ -950,6 +1068,206 @@ const AdminDashboard: React.FC = () => {
     }
   }, [activeTab, projectFilters]);
 
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSettings(s => ({ ...s, logo: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSettingsSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Placeholder: Implement save logic here
+    alert('Settings saved (not really, this is a placeholder)!');
+  };
+
+  // Fetch users when users tab is active
+  const fetchUsers = async () => {
+    setLoadingUsers(true);
+    setUserError(null);
+    try {
+      const params: any = { page: userFilters.page, limit: userFilters.limit };
+      if (userFilters.role !== 'all') params.role = userFilters.role;
+      const res = await authAPI.getUsers(params);
+      if (res.success) {
+        setUsers(res.data.users);
+        setUserPagination(res.data.pagination);
+      } else {
+        setUserError('Failed to load users');
+      }
+    } catch {
+      setUserError('Failed to load users');
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'users') {
+      fetchUsers();
+    }
+  }, [activeTab, userFilters]);
+
+  const openUserModal = (user?: any) => {
+    if (user) {
+      setEditingUser(user);
+      setUserForm({
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        password: '',
+        role: user.role,
+        isActive: user.isActive !== false,
+      });
+    } else {
+      setEditingUser(null);
+      setUserForm({ firstName: '', lastName: '', email: '', password: '', role: 'user', isActive: true });
+    }
+    setShowUserModal(true);
+  };
+
+  const handleUserSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingUser(true);
+    try {
+      if (editingUser) {
+        // Edit user
+        const updateData: any = { ...userForm };
+        if (!userForm.password) delete updateData.password;
+        // Check if role has changed
+        if (editingUser.role !== userForm.role) {
+          const roleRes = await authAPI.updateUserRole(editingUser.id, userForm.role);
+          if (!roleRes.success) {
+            alert(roleRes.message || 'Failed to update user role');
+            setSavingUser(false);
+            return;
+          }
+        }
+        // Remove role from updateData to avoid sending it to the general update endpoint
+        delete updateData.role;
+        const res = await authAPI.updateUser(editingUser.id, updateData);
+        if (res.success) {
+          setShowUserModal(false);
+          fetchUsers();
+        } else {
+          alert(res.message || 'Failed to update user');
+        }
+      } else {
+        // Create user
+        if (!userForm.password) {
+          alert('Password is required for new users');
+          setSavingUser(false);
+          return;
+        }
+        const res = await authAPI.createUser(userForm);
+        if (res.success) {
+          setShowUserModal(false);
+          fetchUsers();
+        } else {
+          alert(res.message || 'Failed to create user');
+        }
+      }
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'Failed to save user');
+    } finally {
+      setSavingUser(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId: number) => {
+    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
+    setSavingUser(true);
+    try {
+      const res = await authAPI.deleteUser(userId);
+      if (res.success) {
+        fetchUsers();
+      } else {
+        alert(res.message || 'Failed to delete user');
+      }
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'Failed to delete user');
+    } finally {
+      setSavingUser(false);
+    }
+  };
+
+  const handleUserFilterChange = (newFilters: Partial<typeof userFilters>) => {
+    setUserFilters(prev => ({ ...prev, ...newFilters, page: 1 }));
+  };
+
+  useEffect(() => {
+    const fetchRecentActivity = async () => {
+      setLoadingActivity(true);
+      setActivityError(null);
+      try {
+        const activityResponse = await fetch(`/api/admin/recent-activity?limit=${activityLimit}`);
+        if (!activityResponse.ok) throw new Error('Failed to fetch recent activity');
+        const data = await activityResponse.json();
+        setRecentActivity(data.recent || []);
+      } catch (err: any) {
+        setActivityError(err.message || 'Error fetching activity');
+      } finally {
+        setLoadingActivity(false);
+      }
+    };
+    fetchRecentActivity();
+  }, [activityLimit]);
+
+  useEffect(() => {
+    if (activeTab === 'about') {
+      setLoadingAbout(true);
+      setAboutError(null);
+      aboutAPI.getAbout()
+        .then(res => {
+          if (res.success && res.data && Object.keys(res.data).length > 0) {
+            // Merge backend data with defaultAboutData for missing keys
+            setAboutData({ ...defaultAboutData, ...res.data });
+          } else {
+            setAboutData(defaultAboutData);
+          }
+        })
+        .catch(() => setAboutData(defaultAboutData))
+        .finally(() => setLoadingAbout(false));
+    }
+  }, [activeTab]);
+
+  const handleAboutChange = (field: string, value: any) => {
+    setAboutData((prev: any) => ({ ...prev, [field]: value }));
+  };
+
+  const handleAboutListChange = (section: string, idx: number, key: string, value: any) => {
+    setAboutData((prev: any) => ({
+      ...prev,
+      [section]: prev[section].map((item: any, i: number) => i === idx ? { ...item, [key]: value } : item)
+    }));
+  };
+
+  const handleAboutListAdd = (section: string, emptyItem: any) => {
+    setAboutData((prev: any) => ({ ...prev, [section]: [...prev[section], emptyItem] }));
+  };
+
+  const handleAboutListRemove = (section: string, idx: number) => {
+    setAboutData((prev: any) => ({ ...prev, [section]: prev[section].filter((_: any, i: number) => i !== idx) }));
+  };
+
+  const handleAboutSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingAbout(true);
+    setAboutError(null);
+    try {
+      const res = await aboutAPI.updateAbout(aboutData);
+      if (!res.success) setAboutError('Failed to save About content');
+    } catch {
+      setAboutError('Failed to save About content');
+    } finally {
+      setSavingAbout(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-900">
       {/* Header */}
@@ -1082,30 +1400,41 @@ const AdminDashboard: React.FC = () => {
               <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
                 <h2 className="text-xl font-bold text-white mb-4">Recent Activity</h2>
                 <div className="space-y-4">
-                  {[
-                    { action: 'New contact form submission', time: '2 minutes ago', type: 'contact' },
-                    { action: 'Project "E-commerce App" updated', time: '1 hour ago', type: 'project' },
-                    { action: 'Blog post "React Best Practices" published', time: '3 hours ago', type: 'blog' },
-                    { action: 'Website analytics updated', time: '1 day ago', type: 'analytics' }
-                  ].map((activity, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.5, delay: index * 0.1 }}
-                      className="flex items-center justify-between p-3 bg-gray-700 rounded-lg"
+                  {loadingActivity ? (
+                    <div className="text-gray-400">Loading...</div>
+                  ) : activityError ? (
+                    <div className="text-red-400">{activityError}</div>
+                  ) : recentActivity.length === 0 ? (
+                    <div className="text-gray-400">No recent activity</div>
+                  ) : (
+                    recentActivity.map((activity, index) => (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.5, delay: index * 0.1 }}
+                        className="flex items-center justify-between p-3 bg-gray-700 rounded-lg"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-2 h-2 rounded-full ${
+                            activity.type === 'contact' ? 'bg-blue-500' :
+                            activity.type === 'project' ? 'bg-green-500' :
+                            activity.type === 'blog' ? 'bg-purple-500' : 'bg-orange-500'
+                          }`}></div>
+                          <span className="text-gray-300">{activity.action}</span>
+                        </div>
+                        <span className="text-gray-500 text-sm">{formatDistanceToNow(new Date(activity.date), { addSuffix: true })}</span>
+                      </motion.div>
+                    ))
+                  )}
+                  {(!loadingActivity && !activityError && recentActivity.length >= activityLimit) && (
+                    <button
+                      className="w-full mt-2 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-center font-semibold"
+                      onClick={() => setActivityLimit(activityLimit + 5)}
                     >
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-2 h-2 rounded-full ${
-                          activity.type === 'contact' ? 'bg-blue-500' :
-                          activity.type === 'project' ? 'bg-green-500' :
-                          activity.type === 'blog' ? 'bg-purple-500' : 'bg-orange-500'
-                        }`}></div>
-                        <span className="text-gray-300">{activity.action}</span>
-                      </div>
-                      <span className="text-gray-500 text-sm">{activity.time}</span>
-                    </motion.div>
-                  ))}
+                      View More
+                    </button>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -1231,7 +1560,11 @@ const AdminDashboard: React.FC = () => {
                         </thead>
                         <tbody className="divide-y divide-gray-700">
                           {projects.map((project) => (
-                            <tr key={project.id} className="hover:bg-gray-700 transition-colors">
+                            <tr
+                              key={project.id}
+                              className="hover:bg-gray-700 transition-colors cursor-pointer"
+                              onClick={() => openProjectModal(project)}
+                            >
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center">
                                   <div className="flex-shrink-0 h-12 w-12">
@@ -1289,7 +1622,7 @@ const AdminDashboard: React.FC = () => {
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <div className="flex space-x-2">
                                   <button
-                                    onClick={() => openProjectModal(project)}
+                                    onClick={e => { e.stopPropagation(); openProjectModal(project); }}
                                     className="text-blue-400 hover:text-blue-300"
                                     title="Edit Project"
                                   >
@@ -1302,6 +1635,7 @@ const AdminDashboard: React.FC = () => {
                                       rel="noopener noreferrer"
                                       className="text-green-400 hover:text-green-300"
                                       title="View Live"
+                                      onClick={e => e.stopPropagation()}
                                     >
                                       <i className="fas fa-external-link-alt"></i>
                                     </a>
@@ -1313,12 +1647,13 @@ const AdminDashboard: React.FC = () => {
                                       rel="noopener noreferrer"
                                       className="text-gray-400 hover:text-gray-300"
                                       title="View GitHub"
+                                      onClick={e => e.stopPropagation()}
                                     >
                                       <i className="fab fa-github"></i>
                                     </a>
                                   )}
                                   <button
-                                    onClick={() => deleteProject(project.id)}
+                                    onClick={e => { e.stopPropagation(); deleteProject(project.id); }}
                                     className="text-red-400 hover:text-red-300"
                                     title="Delete Project"
                                   >
@@ -1462,7 +1797,11 @@ const AdminDashboard: React.FC = () => {
                         </thead>
                         <tbody className="divide-y divide-gray-700">
                           {blogPosts.map((post) => (
-                            <tr key={post.id} className="hover:bg-gray-700 transition-colors">
+                            <tr
+                              key={post.id}
+                              className="hover:bg-gray-700 transition-colors cursor-pointer"
+                              onClick={() => openBlogModal(post)}
+                            >
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div>
                                   <div className="text-sm font-medium text-white">{post.title}</div>
@@ -1497,21 +1836,21 @@ const AdminDashboard: React.FC = () => {
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <div className="flex space-x-2">
                                   <button
-                                    onClick={() => openBlogModal(post)}
+                                    onClick={e => { e.stopPropagation(); openBlogModal(post); }}
                                     className="text-blue-400 hover:text-blue-300"
                                     title="Edit Post"
                                   >
                                     <i className="fas fa-edit"></i>
                                   </button>
                                   <button
-                                    onClick={() => window.open(`/blog/${post.slug}`, '_blank')}
+                                    onClick={e => { e.stopPropagation(); window.open(`/blog/${post.slug}`, '_blank'); }}
                                     className="text-green-400 hover:text-green-300"
                                     title="View Post"
                                   >
                                     <i className="fas fa-external-link-alt"></i>
                                   </button>
                                   <button
-                                    onClick={() => deleteBlogPost(post.id)}
+                                    onClick={e => { e.stopPropagation(); deleteBlogPost(post.id); }}
                                     className="text-red-400 hover:text-red-300"
                                     title="Delete Post"
                                   >
@@ -1555,6 +1894,98 @@ const AdminDashboard: React.FC = () => {
                   </>
                 )}
               </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'about' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="bg-gray-800 rounded-xl p-6 border border-gray-700 max-w-4xl mx-auto"
+            >
+              <h2 className="text-xl font-bold text-white mb-6">Edit About Page Content</h2>
+              {loadingAbout ? (
+                <div className="text-white">Loading...</div>
+              ) : aboutData ? (
+                <form className="space-y-6" onSubmit={handleAboutSave}>
+                  <div>
+                    <label className="block text-gray-400 mb-1">Heading</label>
+                    <input type="text" className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600 focus:border-red-500 focus:outline-none" value={aboutData.heading || ''} onChange={e => handleAboutChange('heading', e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 mb-1">Intro</label>
+                    <textarea className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600 focus:border-red-500 focus:outline-none" value={aboutData.intro || ''} onChange={e => handleAboutChange('intro', e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 mb-1">Who I Am Title</label>
+                    <input type="text" className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600 focus:border-red-500 focus:outline-none" value={aboutData.whoIAm?.title || ''} onChange={e => handleAboutChange('whoIAm', { ...aboutData.whoIAm, title: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 mb-1">Who I Am Paragraphs</label>
+                    {(aboutData.whoIAm?.paragraphs || []).map((p: string, idx: number) => (
+                      <div key={idx} className="flex gap-2 mb-2">
+                        <textarea className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600 focus:border-red-500 focus:outline-none" value={p} onChange={e => handleAboutChange('whoIAm', { ...aboutData.whoIAm, paragraphs: aboutData.whoIAm.paragraphs.map((x: string, i: number) => i === idx ? e.target.value : x) })} />
+                        <button type="button" className="text-red-400" onClick={() => handleAboutChange('whoIAm', { ...aboutData.whoIAm, paragraphs: aboutData.whoIAm.paragraphs.filter((_: string, i: number) => i !== idx) })}><i className="fas fa-trash"></i></button>
+                      </div>
+                    ))}
+                    <button type="button" className="px-3 py-1 bg-gray-600 text-white rounded" onClick={() => handleAboutChange('whoIAm', { ...aboutData.whoIAm, paragraphs: [...(aboutData.whoIAm?.paragraphs || []), ''] })}>Add Paragraph</button>
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 mb-1">Skills</label>
+                    {(aboutData.skills || []).map((skill: any, idx: number) => (
+                      <div key={idx} className="flex gap-2 mb-2">
+                        <input type="text" placeholder="Name" className="bg-gray-700 text-white px-2 py-1 rounded border border-gray-600" value={skill.name} onChange={e => handleAboutListChange('skills', idx, 'name', e.target.value)} />
+                        <input type="number" placeholder="Level" className="bg-gray-700 text-white px-2 py-1 rounded border border-gray-600" value={skill.level} onChange={e => handleAboutListChange('skills', idx, 'level', e.target.value)} />
+                        <input type="color" className="bg-gray-700 rounded border border-gray-600" value={skill.color} onChange={e => handleAboutListChange('skills', idx, 'color', e.target.value)} />
+                        <button type="button" className="text-red-400" onClick={() => handleAboutListRemove('skills', idx)}><i className="fas fa-trash"></i></button>
+                      </div>
+                    ))}
+                    <button type="button" className="px-3 py-1 bg-gray-600 text-white rounded" onClick={() => handleAboutListAdd('skills', { name: '', level: 0, color: '#000000' })}>Add Skill</button>
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 mb-1">Stats</label>
+                    {(aboutData.stats || []).map((stat: any, idx: number) => (
+                      <div key={idx} className="flex gap-2 mb-2">
+                        <input type="text" placeholder="Label" className="bg-gray-700 text-white px-2 py-1 rounded border border-gray-600" value={stat.label} onChange={e => handleAboutListChange('stats', idx, 'label', e.target.value)} />
+                        <input type="text" placeholder="Value" className="bg-gray-700 text-white px-2 py-1 rounded border border-gray-600" value={stat.value} onChange={e => handleAboutListChange('stats', idx, 'value', e.target.value)} />
+                        <button type="button" className="text-red-400" onClick={() => handleAboutListRemove('stats', idx)}><i className="fas fa-trash"></i></button>
+                      </div>
+                    ))}
+                    <button type="button" className="px-3 py-1 bg-gray-600 text-white rounded" onClick={() => handleAboutListAdd('stats', { label: '', value: '' })}>Add Stat</button>
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 mb-1">Experience</label>
+                    {(aboutData.experience || []).map((exp: any, idx: number) => (
+                      <div key={idx} className="flex gap-2 mb-2">
+                        <input type="text" placeholder="Year" className="bg-gray-700 text-white px-2 py-1 rounded border border-gray-600" value={exp.year} onChange={e => handleAboutListChange('experience', idx, 'year', e.target.value)} />
+                        <input type="text" placeholder="Title" className="bg-gray-700 text-white px-2 py-1 rounded border border-gray-600" value={exp.title} onChange={e => handleAboutListChange('experience', idx, 'title', e.target.value)} />
+                        <input type="text" placeholder="Company" className="bg-gray-700 text-white px-2 py-1 rounded border border-gray-600" value={exp.company} onChange={e => handleAboutListChange('experience', idx, 'company', e.target.value)} />
+                        <input type="text" placeholder="Description" className="bg-gray-700 text-white px-2 py-1 rounded border border-gray-600" value={exp.description} onChange={e => handleAboutListChange('experience', idx, 'description', e.target.value)} />
+                        <button type="button" className="text-red-400" onClick={() => handleAboutListRemove('experience', idx)}><i className="fas fa-trash"></i></button>
+                      </div>
+                    ))}
+                    <button type="button" className="px-3 py-1 bg-gray-600 text-white rounded" onClick={() => handleAboutListAdd('experience', { year: '', title: '', company: '', description: '' })}>Add Experience</button>
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 mb-1">Education</label>
+                    {(aboutData.education || []).map((edu: any, idx: number) => (
+                      <div key={idx} className="flex gap-2 mb-2">
+                        <input type="text" placeholder="Year" className="bg-gray-700 text-white px-2 py-1 rounded border border-gray-600" value={edu.year} onChange={e => handleAboutListChange('education', idx, 'year', e.target.value)} />
+                        <input type="text" placeholder="Degree" className="bg-gray-700 text-white px-2 py-1 rounded border border-gray-600" value={edu.degree} onChange={e => handleAboutListChange('education', idx, 'degree', e.target.value)} />
+                        <input type="text" placeholder="School" className="bg-gray-700 text-white px-2 py-1 rounded border border-gray-600" value={edu.school} onChange={e => handleAboutListChange('education', idx, 'school', e.target.value)} />
+                        <input type="text" placeholder="Description" className="bg-gray-700 text-white px-2 py-1 rounded border border-gray-600" value={edu.description} onChange={e => handleAboutListChange('education', idx, 'description', e.target.value)} />
+                        <button type="button" className="text-red-400" onClick={() => handleAboutListRemove('education', idx)}><i className="fas fa-trash"></i></button>
+                      </div>
+                    ))}
+                    <button type="button" className="px-3 py-1 bg-gray-600 text-white rounded" onClick={() => handleAboutListAdd('education', { year: '', degree: '', school: '', description: '' })}>Add Education</button>
+                  </div>
+                  {aboutError && <div className="text-red-400">{aboutError}</div>}
+                  <button type="submit" className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors" disabled={savingAbout || loadingAbout}>{savingAbout ? 'Saving...' : 'Save About Content'}</button>
+                </form>
+              ) : aboutError ? (
+                <div className="text-red-400">{aboutError}</div>
+              ) : null}
             </motion.div>
           )}
 
@@ -1657,7 +2088,11 @@ const AdminDashboard: React.FC = () => {
                         </thead>
                         <tbody className="divide-y divide-gray-700">
                           {contacts.map((contact) => (
-                            <tr key={contact.id} className="hover:bg-gray-700 transition-colors">
+                            <tr
+                              key={contact.id}
+                              className="hover:bg-gray-700 transition-colors cursor-pointer"
+                              onClick={() => openContactDetails(contact.id)}
+                            >
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div>
                                   <div className="text-sm font-medium text-white">{contact.name}</div>
@@ -1683,7 +2118,7 @@ const AdminDashboard: React.FC = () => {
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <div className="flex space-x-2">
                                   <button
-                                    onClick={() => openContactDetails(contact.id)}
+                                    onClick={e => { e.stopPropagation(); openContactDetails(contact.id); }}
                                     className="text-blue-400 hover:text-blue-300"
                                     title="View Details"
                                   >
@@ -1691,7 +2126,7 @@ const AdminDashboard: React.FC = () => {
                                   </button>
                                   {contact.status === 'new' && (
                                     <button
-                                      onClick={() => markContactAsRead(contact.id)}
+                                      onClick={e => { e.stopPropagation(); markContactAsRead(contact.id); }}
                                       className="text-green-400 hover:text-green-300"
                                       title="Mark as Read"
                                     >
@@ -1700,10 +2135,7 @@ const AdminDashboard: React.FC = () => {
                                   )}
                                   {contact.status !== 'replied' && contact.status !== 'archived' && (
                                     <button
-                                      onClick={() => {
-                                        setSelectedContact(contact);
-                                        setShowReplyModal(true);
-                                      }}
+                                      onClick={e => { e.stopPropagation(); setSelectedContact(contact); setShowReplyModal(true); }}
                                       className="text-purple-400 hover:text-purple-300"
                                       title="Reply"
                                     >
@@ -1712,7 +2144,7 @@ const AdminDashboard: React.FC = () => {
                                   )}
                                   {contact.status !== 'archived' && (
                                     <button
-                                      onClick={() => archiveContact(contact.id)}
+                                      onClick={e => { e.stopPropagation(); archiveContact(contact.id); }}
                                       className="text-gray-400 hover:text-gray-300"
                                       title="Archive"
                                     >
@@ -1720,7 +2152,7 @@ const AdminDashboard: React.FC = () => {
                                     </button>
                                   )}
                                   <button
-                                    onClick={() => deleteContact(contact.id)}
+                                    onClick={e => { e.stopPropagation(); deleteContact(contact.id); }}
                                     className="text-red-400 hover:text-red-300"
                                     title="Delete"
                                   >
@@ -1980,7 +2412,46 @@ const AdminDashboard: React.FC = () => {
               className="bg-gray-800 rounded-xl p-6 border border-gray-700"
             >
               <h2 className="text-xl font-bold text-white mb-6">Website Settings</h2>
-              <p className="text-gray-400">Settings management interface coming soon...</p>
+              <form className="space-y-6" onSubmit={handleSettingsSave}>
+                <div>
+                  <label className="block text-gray-400 mb-1">Site Title</label>
+                  <input type="text" className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600 focus:border-red-500 focus:outline-none" value={settings.siteTitle} onChange={e => setSettings(s => ({...s, siteTitle: e.target.value}))} />
+                </div>
+                <div>
+                  <label className="block text-gray-400 mb-1">Site Description</label>
+                  <textarea className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600 focus:border-red-500 focus:outline-none" value={settings.siteDescription} onChange={e => setSettings(s => ({...s, siteDescription: e.target.value}))} />
+                </div>
+                <div>
+                  <label className="block text-gray-400 mb-1">Admin Email</label>
+                  <input type="email" className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600 focus:border-red-500 focus:outline-none" value={settings.adminEmail} onChange={e => setSettings(s => ({...s, adminEmail: e.target.value}))} />
+                </div>
+                <div>
+                  <label className="block text-gray-400 mb-1">Theme</label>
+                  <select className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600 focus:border-red-500 focus:outline-none" value={settings.theme} onChange={e => setSettings(s => ({...s, theme: e.target.value}))}>
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                    <option value="auto">Auto</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-gray-400 mb-1">Homepage Message</label>
+                  <input type="text" className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600 focus:border-red-500 focus:outline-none" value={settings.homepageMessage} onChange={e => setSettings(s => ({...s, homepageMessage: e.target.value}))} />
+                </div>
+                <div>
+                  <label className="block text-gray-400 mb-1">Social Media Links (comma separated)</label>
+                  <input type="text" className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600 focus:border-red-500 focus:outline-none" value={settings.socialLinks} onChange={e => setSettings(s => ({...s, socialLinks: e.target.value}))} />
+                </div>
+                <div>
+                  <label className="block text-gray-400 mb-1">Logo Upload</label>
+                  <input type="file" className="w-full text-gray-400" onChange={handleLogoUpload} />
+                  {settings.logo && <img src={settings.logo} alt="Logo Preview" className="mt-2 h-12" />}
+                </div>
+                <div className="flex items-center">
+                  <input type="checkbox" id="maintenance" checked={settings.maintenanceMode} onChange={e => setSettings(s => ({...s, maintenanceMode: e.target.checked}))} className="mr-2" />
+                  <label htmlFor="maintenance" className="text-gray-400">Maintenance Mode</label>
+                </div>
+                <button type="submit" className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">Save Settings</button>
+              </form>
             </motion.div>
           )}
 
@@ -2624,6 +3095,186 @@ const AdminDashboard: React.FC = () => {
                 </form>
               </motion.div>
             </div>
+          )}
+
+          {/* Users Tab */}
+          {activeTab === 'users' && isDeveloper && (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+              <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+                <div className="p-6 border-b border-gray-700 flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-white">Manage Users</h2>
+                  <button
+                    onClick={() => openUserModal()}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    <i className="fas fa-plus mr-2"></i>
+                    Add User
+                  </button>
+                </div>
+                {/* Filters */}
+                <div className="flex flex-wrap gap-4 items-center px-6 py-4">
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-2">Role Filter</label>
+                    <select
+                      value={userFilters.role}
+                      onChange={e => handleUserFilterChange({ role: e.target.value })}
+                      className="bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600 focus:border-red-500 focus:outline-none"
+                    >
+                      <option value="all">All Roles</option>
+                      <option value="user">User</option>
+                      <option value="developer">Developer</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-2">Items per page</label>
+                    <select
+                      value={userFilters.limit}
+                      onChange={e => handleUserFilterChange({ limit: parseInt(e.target.value) })}
+                      className="bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600 focus:border-red-500 focus:outline-none"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                    </select>
+                  </div>
+                </div>
+                {loadingUsers ? (
+                  <div className="p-8 text-center text-white">Loading users...</div>
+                ) : userError ? (
+                  <div className="p-8 text-center text-red-400">{userError}</div>
+                ) : users.length === 0 ? (
+                  <div className="p-8 text-center text-gray-400">No users found</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-700">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Name</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Email</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Role</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Active</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-700">
+                        {users.map((u) => (
+                          <tr
+                            key={u.id}
+                            className="hover:bg-gray-700 transition-colors cursor-pointer"
+                            onClick={() => openUserModal(u)}
+                          >
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm font-medium text-white">{u.firstName} {u.lastName}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-400">{u.email}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${u.role === 'developer' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>{u.role.charAt(0).toUpperCase() + u.role.slice(1)}</span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${u.isActive !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{u.isActive !== false ? 'Active' : 'Inactive'}</span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={e => { e.stopPropagation(); openUserModal(u); }}
+                                  className="text-blue-400 hover:text-blue-300"
+                                  title="Edit User"
+                                >
+                                  <i className="fas fa-edit"></i>
+                                </button>
+                                <button
+                                  onClick={e => { e.stopPropagation(); handleDeleteUser(u.id); }}
+                                  className="text-red-400 hover:text-red-300"
+                                  title="Delete User"
+                                  disabled={savingUser}
+                                >
+                                  <i className="fas fa-trash"></i>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                {/* Pagination */}
+                {userPagination.totalPages > 1 && (
+                  <div className="bg-gray-700 px-6 py-3 flex items-center justify-between">
+                    <div className="text-sm text-gray-400">
+                      Showing {((userPagination.currentPage - 1) * userFilters.limit) + 1} to {Math.min(userPagination.currentPage * userFilters.limit, userPagination.totalUsers)} of {userPagination.totalUsers} users
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleUserFilterChange({ page: userPagination.currentPage - 1 })}
+                        disabled={!userPagination.hasPrev}
+                        className="px-3 py-1 bg-gray-600 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-500"
+                      >
+                        Previous
+                      </button>
+                      <span className="px-3 py-1 text-gray-300">
+                        Page {userPagination.currentPage} of {userPagination.totalPages}
+                      </span>
+                      <button
+                        onClick={() => handleUserFilterChange({ page: userPagination.currentPage + 1 })}
+                        disabled={!userPagination.hasNext}
+                        className="px-3 py-1 bg-gray-600 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-500"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              {/* User Modal */}
+              {showUserModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                  <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-gray-800 rounded-xl max-w-lg w-full">
+                    <form className="p-6 space-y-4" onSubmit={handleUserSubmit}>
+                      <h3 className="text-xl font-bold text-white mb-2">{editingUser ? 'Edit User' : 'Add User'}</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-gray-400 mb-1">First Name</label>
+                          <input type="text" className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600 focus:border-red-500 focus:outline-none" value={userForm.firstName} onChange={e => setUserForm(f => ({ ...f, firstName: e.target.value }))} required />
+                        </div>
+                        <div>
+                          <label className="block text-gray-400 mb-1">Last Name</label>
+                          <input type="text" className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600 focus:border-red-500 focus:outline-none" value={userForm.lastName} onChange={e => setUserForm(f => ({ ...f, lastName: e.target.value }))} required />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-gray-400 mb-1">Email</label>
+                        <input type="email" className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600 focus:border-red-500 focus:outline-none" value={userForm.email} onChange={e => setUserForm(f => ({ ...f, email: e.target.value }))} required />
+                      </div>
+                      <div>
+                        <label className="block text-gray-400 mb-1">Password {editingUser ? <span className="text-xs text-gray-400">(leave blank to keep unchanged)</span> : ''}</label>
+                        <input type="password" className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600 focus:border-red-500 focus:outline-none" value={userForm.password} onChange={e => setUserForm(f => ({ ...f, password: e.target.value }))} required={!editingUser} />
+                      </div>
+                      <div>
+                        <label className="block text-gray-400 mb-1">Role</label>
+                        <select className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600 focus:border-red-500 focus:outline-none" value={userForm.role} onChange={e => setUserForm(f => ({ ...f, role: e.target.value }))}>
+                          <option value="user">User</option>
+                          <option value="developer">Developer</option>
+                        </select>
+                      </div>
+                      <div className="flex items-center">
+                        <input type="checkbox" id="isActive" checked={userForm.isActive} onChange={e => setUserForm(f => ({ ...f, isActive: e.target.checked }))} className="mr-2" />
+                        <label htmlFor="isActive" className="text-gray-400">Active</label>
+                      </div>
+                      <div className="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-700">
+                        <button type="button" onClick={() => setShowUserModal(false)} className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">Cancel</button>
+                        <button type="submit" disabled={savingUser} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                          {savingUser ? (<><i className="fas fa-spinner fa-spin mr-2"></i>Saving...</>) : (<><i className="fas fa-save mr-2"></i>{editingUser ? 'Update User' : 'Create User'}</>)}
+                        </button>
+                      </div>
+                    </form>
+                  </motion.div>
+                </div>
+              )}
+            </motion.div>
           )}
         </main>
       </div>

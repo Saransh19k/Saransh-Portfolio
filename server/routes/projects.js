@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const Project = require('../models/Project');
 
 // Sample projects data (in production, use database)
 let projects = [
@@ -10,57 +11,24 @@ let projects = [
 router.get('/', async (req, res) => {
   try {
     const { category, featured, search, sort = 'completedAt' } = req.query;
-    
-    let filteredProjects = [...projects];
-    
-    // Filter by category
-    if (category) {
-      filteredProjects = filteredProjects.filter(project => 
-        project.category.toLowerCase() === category.toLowerCase()
-      );
-    }
-    
-    // Filter by featured
-    if (featured === 'true') {
-      filteredProjects = filteredProjects.filter(project => project.featured);
-    }
-    
-    // Search functionality
+    let where = {};
+    if (category) where.category = category;
+    if (featured === 'true') where.featured = true;
     if (search) {
-      const searchLower = search.toLowerCase();
-      filteredProjects = filteredProjects.filter(project =>
-        project.title.toLowerCase().includes(searchLower) ||
-        project.description.toLowerCase().includes(searchLower) ||
-        project.technologies.some(tech => tech.toLowerCase().includes(searchLower))
-      );
+      where = {
+        ...where,
+        [Project.sequelize.Op.or]: [
+          { title: { [Project.sequelize.Op.like]: `%${search}%` } },
+          { description: { [Project.sequelize.Op.like]: `%${search}%` } },
+          { technologies: { [Project.sequelize.Op.like]: `%${search}%` } }
+        ]
+      };
     }
-    
-    // Sorting
-    filteredProjects.sort((a, b) => {
-      switch (sort) {
-        case 'views':
-          return b.views - a.views;
-        case 'likes':
-          return b.likes - a.likes;
-        case 'title':
-          return a.title.localeCompare(b.title);
-        case 'completedAt':
-        default:
-          return new Date(b.completedAt) - new Date(a.completedAt);
-      }
-    });
-    
-    res.json({
-      success: true,
-      data: filteredProjects
-    });
-    
+    const projects = await Project.findAll({ where, order: [[sort, 'DESC']] });
+    res.json({ success: true, data: projects });
   } catch (error) {
     console.error('Get projects error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch projects'
-    });
+    res.status(500).json({ success: false, message: 'Failed to fetch projects' });
   }
 });
 
@@ -107,9 +75,7 @@ router.post('/', async (req, res) => {
       githubUrl,
       featured = false
     } = req.body;
-    
-    const newProject = {
-      id: projects.length + 1,
+    const newProject = await Project.create({
       title,
       description,
       image,
@@ -120,17 +86,13 @@ router.post('/', async (req, res) => {
       featured,
       views: 0,
       likes: 0,
-      completedAt: new Date().toISOString().split('T')[0]
-    };
-    
-    projects.push(newProject);
-    
+      completedAt: new Date()
+    });
     res.status(201).json({
       success: true,
       message: 'Project created successfully',
       data: newProject
     });
-    
   } catch (error) {
     console.error('Create project error:', error);
     res.status(500).json({

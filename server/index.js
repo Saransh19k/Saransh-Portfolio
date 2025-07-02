@@ -21,6 +21,8 @@ const contactRoutes = require('./routes/contact');
 const projectsRoutes = require('./routes/projects');
 const analyticsRoutes = require('./routes/analytics');
 const authRoutes = require('./routes/auth');
+const recentActivityRoutes = require('./routes/recentActivity');
+const aboutRoutes = require('./routes/about');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -45,8 +47,8 @@ app.use(helmet({
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'production' ? 100 : 10000, // much higher for dev
   message: {
     error: 'Too many requests from this IP, please try again later.',
     retryAfter: '15 minutes'
@@ -55,7 +57,9 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 
-app.use('/api/', limiter);
+if (process.env.NODE_ENV === 'production') {
+  app.use('/api/', limiter);
+}
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -65,7 +69,11 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
     ? [process.env.FRONTEND_URL, 'https://saranshnimje.com']
-    : ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    : [
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+        'http://192.168.29.164:3000'
+      ],
   credentials: true,
   optionsSuccessStatus: 200
 };
@@ -104,6 +112,8 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/projects', projectsRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/admin/recent-activity', recentActivityRoutes);
+app.use('/api/about', aboutRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -156,7 +166,7 @@ const initializeServer = async () => {
       await syncDatabase();
       
       // Start server
-      app.listen(PORT, () => {
+      app.listen(PORT, '0.0.0.0', () => {
         console.log('🚀 Server running on port', PORT);
         console.log('📊 Environment:', NODE_ENV);
         console.log('🌐 Health check: http://localhost:' + PORT + '/api/health');
@@ -168,7 +178,7 @@ const initializeServer = async () => {
       console.log('📝 To enable full functionality, check your database configuration');
       
       // Start server without database
-      app.listen(PORT, () => {
+      app.listen(PORT, '0.0.0.0', () => {
         console.log('🚀 Server running on port', PORT);
         console.log('📊 Environment:', NODE_ENV);
         console.log('🌐 Health check: http://localhost:' + PORT + '/api/health');

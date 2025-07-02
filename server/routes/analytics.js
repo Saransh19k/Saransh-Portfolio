@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Blog = require('../models/Blog');
 const Contact = require('../models/Contact');
+const Project = require('../models/Project');
 
 // In-memory storage for analytics (in production, use Redis or database)
 let analytics = {
@@ -298,12 +299,12 @@ router.get('/admin/stats', async (req, res) => {
   try {
     const totalBlogPosts = await Blog.count();
     const totalContacts = await Contact.count();
-    // If you add a Project model, add its count here
+    const totalProjects = await Project.count();
     res.json({
       success: true,
       data: {
         totalVisitors: analytics.visitors,
-        totalProjects: 0, // Update if Project model is added
+        totalProjects,
         totalBlogPosts,
         totalContacts
       }

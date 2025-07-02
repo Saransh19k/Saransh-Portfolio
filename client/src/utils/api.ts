@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://192.168.29.164:5000/api';
 
 // Create axios instance
 const api = axios.create({
@@ -109,6 +109,36 @@ export const authAPI = {
     isActive?: boolean;
   }) => {
     const response = await api.get('/auth/users', { params });
+    return response.data;
+  },
+
+  // Update user role (developer only)
+  updateUserRole: async (id: number | string, role: string) => {
+    const response = await api.put(`/auth/users/${id}/role`, { role });
+    return response.data;
+  },
+
+  // Create user (developer only)
+  createUser: async (userData: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+    role?: string;
+  }) => {
+    const response = await api.post('/auth/users', userData);
+    return response.data;
+  },
+
+  // Update user (developer only)
+  updateUser: async (id: number | string, userData: any) => {
+    const response = await api.put(`/auth/users/${id}`, userData);
+    return response.data;
+  },
+
+  // Delete user (developer only)
+  deleteUser: async (id: number | string) => {
+    const response = await api.delete(`/auth/users/${id}`);
     return response.data;
   },
 };
@@ -289,6 +319,21 @@ export const analyticsAPI = {
 export const healthCheck = async () => {
   const response = await api.get('/health');
   return response.data;
+};
+
+export const aboutAPI = {
+  getAbout: async () => {
+    const res = await fetch('/api/about');
+    return res.json();
+  },
+  updateAbout: async (data: any) => {
+    const res = await fetch('/api/about', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return res.json();
+  }
 };
 
 export default api; 

@@ -40,8 +40,7 @@ router.get('/', async (req, res) => {
       where: whereClause,
       order: [['publishedAt', 'DESC']],
       limit: parseInt(limit),
-      offset: parseInt(offset),
-      attributes: { exclude: ['content'] } // Don't send full content in list
+      offset: parseInt(offset)
     });
     
     // Transform posts to match frontend expectations
@@ -50,6 +49,7 @@ router.get('/', async (req, res) => {
       title: post.title,
       slug: post.slug,
       excerpt: post.excerpt,
+      content: post.content,
       featuredImage: post.featuredImage,
       tags: post.tags,
       category: post.category,

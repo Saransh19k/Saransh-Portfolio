@@ -1,7 +1,11 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { aboutAPI } from '../utils/api';
 
 const About: React.FC = () => {
+  const [aboutContent, setAboutContent] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
   const skills = [
     { name: 'React', level: 90, color: '#61DAFB' },
     { name: 'Node.js', level: 85, color: '#339933' },
@@ -13,33 +17,58 @@ const About: React.FC = () => {
 
   const experience = [
     {
-      year: '2023 - Present',
-      title: 'Senior Full Stack Developer',
-      company: 'Tech Solutions Inc.',
-      description: 'Leading development of scalable web applications and mentoring junior developers.'
+      year: '2025 - Present',
+      title: 'B.Tech Student & Tech Enthusiast',
+      company: 'Baderia Global Institute of Engineering and Management',
+      description: 'Currently pursuing B.Tech in CSE (IoT & Cyber Security, including Blockchain Technology). Actively participating in coding clubs, technical workshops, and student-led tech initiatives.'
     },
     {
-      year: '2021 - 2023',
-      title: 'Full Stack Developer',
-      company: 'Digital Innovations',
-      description: 'Built and maintained multiple client projects using modern web technologies.'
+      year: '2024 - 2025',
+      title: 'Personal Portfolio Project',
+      company: 'Self-Driven',
+      description: 'Designed and developed a personal portfolio website using React, Node.js, and TypeScript to showcase projects and skills.'
     },
     {
-      year: '2020 - 2021',
-      title: 'Frontend Developer',
-      company: 'Web Studio',
-      description: 'Created responsive user interfaces and implemented modern design patterns.'
+      year: '2023 - 2024',
+      title: 'Open Source Contributor',
+      company: 'GitHub',
+      description: 'Contributed to open-source projects, focusing on bug fixes and feature enhancements in web development repositories.'
+    },
+    {
+      year: '2022 - 2023',
+      title: 'School Coding Club Member',
+      company: 'ADITYA CONVENT SR. SEC. SCHOOL',
+      description: 'Participated in school-level coding competitions and collaborated on group projects, building foundational programming skills.'
     }
   ];
 
   const education = [
     {
-      year: '2016 - 2020',
-      degree: 'Bachelor of Computer Science',
-      school: 'University of Technology',
-      description: 'Specialized in Software Engineering and Web Development.'
+      year: '2025 - Present',
+      degree: 'B.Tech in CSE (IoT & Cyber Security, including Blockchain Technology)',
+      school: 'Baderia Global Institute of Engineering and Management, Jabalpur (RGPV Bhopal)',
+      description: 'Currently in 1st year, 1st semester. Started college journey in 2025.'
+    },
+    {
+      year: '2024 - 25',
+      degree: 'Class 12th (CBSE)',
+      school: 'ADITYA CONVENT SR. SEC. SCHOOL, JABALPUR',
+      description: 'Completed Class 12th from CBSE board.'
+    },
+    {
+      year: '2022 - 23',
+      degree: 'Class 10th (CBSE)',
+      school: 'ADITYA CONVENT SR. SEC. SCHOOL, JABALPUR',
+      description: 'Completed Class 10th from CBSE board.'
     }
   ];
+
+  useEffect(() => {
+    aboutAPI.getAbout().then(res => {
+      if (res.success) setAboutContent(res.data.content);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
 
   return (
     <div className="min-h-screen pt-20 px-4">
@@ -55,8 +84,7 @@ const About: React.FC = () => {
             About <span className="gradient-text">Me</span>
           </h1>
           <p className="text-xl text-gray-400 max-w-3xl mx-auto">
-            Passionate full-stack developer with a love for creating innovative solutions 
-            and pushing the boundaries of what's possible on the web.
+            {loading ? 'Loading...' : aboutContent || 'Passionate full-stack developer with a love for creating innovative solutions and pushing the boundaries of what\'s possible on the web.'}
           </p>
         </motion.div>
 

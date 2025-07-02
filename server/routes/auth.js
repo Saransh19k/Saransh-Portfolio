@@ -410,4 +410,110 @@ router.get('/users', async (req, res) => {
   }
 });
 
+// Update user role (developer only)
+router.put('/users/:id/role', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ success: false, message: 'No token provided' });
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    if (decoded.role !== 'developer') {
+      return res.status(403).json({ success: false, message: 'Access denied. Developer role required.' });
+    }
+    const user = await User.findByPk(req.params.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    const { role } = req.body;
+    if (!['user', 'developer'].includes(role)) {
+      return res.status(400).json({ success: false, message: 'Invalid role' });
+    }
+    user.role = role;
+    await user.save();
+    res.json({ success: true, message: 'User role updated', data: { user: user.toJSON() } });
+  } catch (error) {
+    console.error('Update user role error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update user role' });
+  }
+});
+
+// Create a new user (developer only)
+router.post('/users', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ success: false, message: 'No token provided' });
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    if (decoded.role !== 'developer') {
+      return res.status(403).json({ success: false, message: 'Access denied. Developer role required.' });
+    }
+    const { firstName, lastName, email, password, role } = req.body;
+    if (!firstName || !lastName || !email || !password) {
+      return res.status(400).json({ success: false, message: 'Missing required fields' });
+    }
+    const user = await User.createUser({ firstName, lastName, email, password, role: role || 'user' });
+    res.status(201).json({ success: true, message: 'User created', data: { user: user.toJSON() } });
+  } catch (error) {
+    console.error('Create user error:', error);
+    res.status(500).json({ success: false, message: 'Failed to create user' });
+  }
+});
+
+// Update any user (developer only)
+router.put('/users/:id', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ success: false, message: 'No token provided' });
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    if (decoded.role !== 'developer') {
+      return res.status(403).json({ success: false, message: 'Access denied. Developer role required.' });
+    }
+    const user = await User.findByPk(req.params.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    const { firstName, lastName, email, bio, website, location, preferences, isActive } = req.body;
+    if (firstName !== undefined) user.firstName = firstName;
+    if (lastName !== undefined) user.lastName = lastName;
+    if (email !== undefined) user.email = email;
+    if (bio !== undefined) user.bio = bio;
+    if (website !== undefined) user.website = website;
+    if (location !== undefined) user.location = location;
+    if (preferences !== undefined) user.preferences = { ...user.preferences, ...preferences };
+    if (isActive !== undefined) user.isActive = isActive;
+    await user.save();
+    res.json({ success: true, message: 'User updated', data: { user: user.toJSON() } });
+  } catch (error) {
+    console.error('Update user error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update user' });
+  }
+});
+
+// Delete any user (developer only)
+router.delete('/users/:id', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ success: false, message: 'No token provided' });
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    if (decoded.role !== 'developer') {
+      return res.status(403).json({ success: false, message: 'Access denied. Developer role required.' });
+    }
+    const user = await User.findByPk(req.params.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    await user.destroy();
+    res.json({ success: true, message: 'User deleted' });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete user' });
+  }
+});
+
 module.exports = router; 
