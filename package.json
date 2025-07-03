@@ -13,7 +13,8 @@
     "setup": "node setup.js",
     "test": "jest",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "postinstall": "npm rebuild"
   },
   "keywords": [
     "portfolio",

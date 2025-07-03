@@ -46,7 +46,8 @@
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "type-check": "tsc --noEmit",
-    "preview": "npm run build && npx serve -s build"
+    "preview": "npm run build && npx serve -s build",
+    "postinstall": "npm rebuild"
   },
   "eslintConfig": {
     "extends": [
