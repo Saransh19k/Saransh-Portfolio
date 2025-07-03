@@ -17,6 +17,7 @@ interface User {
   emailVerified?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  profilePicture?: string;
 }
 
 interface AuthContextType {
@@ -75,7 +76,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               loginCount: userData.loginCount,
               emailVerified: userData.emailVerified,
               createdAt: userData.createdAt,
-              updatedAt: userData.updatedAt
+              updatedAt: userData.updatedAt,
+              profilePicture: userData.profilePicture,
             });
           }
         } catch (error) {
@@ -122,7 +124,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           loginCount: userData.loginCount,
           emailVerified: userData.emailVerified,
           createdAt: userData.createdAt,
-          updatedAt: userData.updatedAt
+          updatedAt: userData.updatedAt,
+          profilePicture: userData.profilePicture,
         });
         
         return true;
@@ -168,7 +171,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           loginCount: userData.loginCount,
           emailVerified: userData.emailVerified,
           createdAt: userData.createdAt,
-          updatedAt: userData.updatedAt
+          updatedAt: userData.updatedAt,
+          profilePicture: userData.profilePicture,
         });
         
         return true;
@@ -214,7 +218,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           loginCount: newUser.loginCount,
           emailVerified: newUser.emailVerified,
           createdAt: newUser.createdAt,
-          updatedAt: newUser.updatedAt
+          updatedAt: newUser.updatedAt,
+          profilePicture: newUser.profilePicture,
         });
         
         return true;

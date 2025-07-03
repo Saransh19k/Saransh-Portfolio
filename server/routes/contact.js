@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const Contact = require('../models/Contact');
+const { Contact } = require('../models');
 const { validateContact } = require('../middleware/validation');
-const { sendContactNotification, sendContactConfirmation } = require('../utils/email');
 
 // Submit contact form
 router.post('/', validateContact, async (req, res) => {
@@ -22,34 +21,6 @@ router.post('/', validateContact, async (req, res) => {
       ipAddress,
       userAgent
     });
-    
-    // Send email notification to admin
-    try {
-      await sendContactNotification({
-        name,
-        email,
-        subject,
-        message,
-        timestamp: contact.createdAt,
-        ipAddress
-      });
-    } catch (emailError) {
-      console.error('Email sending failed:', emailError);
-      // Don't fail the request if email fails
-    }
-    
-    // Send confirmation email to user
-    try {
-      await sendContactConfirmation({
-        name,
-        email,
-        subject,
-        message
-      });
-    } catch (emailError) {
-      console.error('Confirmation email sending failed:', emailError);
-      // Don't fail the request if email fails
-    }
     
     res.status(201).json({
       success: true,
@@ -113,6 +84,33 @@ router.get('/', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch contact messages'
+    });
+  }
+});
+
+// Get all contact messages for a given email (public)
+router.get('/by-email', async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+    const contacts = await Contact.findAll({
+      where: { email },
+      order: [['createdAt', 'DESC']]
+    });
+    res.json({
+      success: true,
+      data: { contacts }
+    });
+  } catch (error) {
+    console.error('Error fetching contacts by email:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch contact messages by email'
     });
   }
 });
@@ -204,21 +202,6 @@ router.post('/:id/reply', async (req, res) => {
     }
     
     await contact.markAsReplied(replyMessage);
-    
-    // Send reply email
-    try {
-      await sendContactNotification({
-        name: contact.name,
-        email: contact.email,
-        subject: `Re: ${contact.subject}`,
-        message: replyMessage,
-        timestamp: contact.repliedAt,
-        ipAddress: contact.ipAddress
-      });
-    } catch (emailError) {
-      console.error('Reply email sending failed:', emailError);
-      // Don't fail the request if email fails
-    }
     
     res.json({
       success: true,

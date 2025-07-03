@@ -1,9 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const Contact = require('../models/Contact');
-const Project = require('../models/Project');
-const Blog = require('../models/Blog');
+const { Contact, Project, Blog } = require('../models');
 
 // Helper to format activity
 function formatActivity(type, action, date) {

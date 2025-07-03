@@ -1,7 +1,18 @@
-const { sequelize } = require('../config/database');
-const Blog = require('../models/Blog');
-const Contact = require('../models/Contact');
-const User = require('../models/User');
+const { sequelizeSqlite } = require('../config/database');
+const UserModel = require('../models/User');
+const ProjectModel = require('../models/Project');
+const ContactModel = require('../models/Contact');
+const BlogModel = require('../models/Blog');
+const AboutModel = require('../models/About');
+
+// Use only SQLite for seeding
+const sequelize = sequelizeSqlite;
+
+const User = UserModel(sequelize);
+const Project = ProjectModel(sequelize);
+const Contact = ContactModel(sequelize);
+const Blog = BlogModel(sequelize);
+const About = AboutModel(sequelize);
 
 const sampleBlogPosts = [
   {
@@ -36,7 +47,7 @@ React provides a powerful component-based architecture that makes building inter
 
 ### Backend
 - Node.js with Express
-- SQLite for development (PostgreSQL for production)
+- SQLite for development
 - Sequelize ORM
 - JWT for authentication
 

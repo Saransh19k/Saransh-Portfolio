@@ -8,12 +8,10 @@ const path = require('path');
 require('dotenv').config();
 
 // Import database configuration
-const { sequelize, testConnection, syncDatabase } = require('./config/database');
+const { sequelizeSqlite: sequelize } = require('./config/database');
 
 // Import models
-const Blog = require('./models/Blog');
-const Contact = require('./models/Contact');
-const User = require('./models/User');
+const { Blog, Contact, User, Project } = require('./models');
 
 // Import routes
 const blogRoutes = require('./routes/blog');
@@ -158,36 +156,25 @@ app.use('*', (req, res) => {
 // Initialize database and start server
 const initializeServer = async () => {
   try {
-    // Test database connection
-    const dbConnected = await testConnection();
-    
-    if (dbConnected) {
-      // Sync database (create tables if they don't exist)
-      await syncDatabase();
-      
-      // Start server
-      app.listen(PORT, '0.0.0.0', () => {
-        console.log('🚀 Server running on port', PORT);
-        console.log('📊 Environment:', NODE_ENV);
-        console.log('🌐 Health check: http://localhost:' + PORT + '/api/health');
-        console.log('🔗 API Base URL: http://localhost:' + PORT + '/api');
-        console.log('🗄️ Database:', sequelize.getDialect());
-      });
-    } else {
-      console.log('⚠️ Database connection failed, running in development mode without database');
-      console.log('📝 To enable full functionality, check your database configuration');
-      
-      // Start server without database
-      app.listen(PORT, '0.0.0.0', () => {
-        console.log('🚀 Server running on port', PORT);
-        console.log('📊 Environment:', NODE_ENV);
-        console.log('🌐 Health check: http://localhost:' + PORT + '/api/health');
-        console.log('🔗 API Base URL: http://localhost:' + PORT + '/api');
-      });
-    }
+    await sequelize.authenticate();
+    console.log('Database connected...');
+    await sequelize.sync();
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log('🚀 Server running on port', PORT);
+      console.log('📊 Environment:', NODE_ENV);
+      console.log('🌐 Health check: http://localhost:' + PORT + '/api/health');
+      console.log('🔗 API Base URL: http://localhost:' + PORT + '/api');
+      console.log('🗄️ Database:', sequelize.getDialect());
+    });
   } catch (error) {
-    console.error('❌ Failed to initialize server:', error);
-    process.exit(1);
+    console.log('⚠️ Database connection failed, running in development mode without database');
+    console.log('📝 To enable full functionality, check your database configuration');
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log('🚀 Server running on port', PORT);
+      console.log('📊 Environment:', NODE_ENV);
+      console.log('🌐 Health check: http://localhost:' + PORT + '/api/health');
+      console.log('🔗 API Base URL: http://localhost:' + PORT + '/api');
+    });
   }
 };
 
@@ -205,4 +192,12 @@ process.on('SIGINT', async () => {
 });
 
 // Start the server
-initializeServer(); 
+sequelize.authenticate()
+  .then(() => {
+    console.log('Database connected...');
+    initializeServer();
+  })
+  .catch(err => {
+    console.error('Unable to connect to the database:', err);
+    initializeServer();
+  }); 

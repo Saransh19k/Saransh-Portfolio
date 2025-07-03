@@ -305,7 +305,7 @@ const AdminDashboard: React.FC = () => {
       { name: 'React', level: 90, color: '#61DAFB' },
       { name: 'Node.js', level: 85, color: '#339933' },
       { name: 'TypeScript', level: 80, color: '#3178C6' },
-      { name: 'SQL/PostgreSQL', level: 75, color: '#336791' },
+      { name: 'SQLite', level: 75, color: '#003B57' },
       { name: 'Python', level: 70, color: '#3776AB' },
       { name: 'AWS', level: 65, color: '#FF9900' }
     ],
@@ -609,10 +609,12 @@ const AdminDashboard: React.FC = () => {
         setBlogPosts(data.data.posts);
         setBlogPagination(data.data.pagination);
       } else {
-        setBlogError('Failed to load blog posts');
+        setBlogError(data.message || 'Failed to load blog posts');
+        console.error('Blog API error:', data);
       }
-    } catch (error) {
-      setBlogError('Failed to load blog posts');
+    } catch (error: any) {
+      setBlogError(error?.message || 'Failed to load blog posts');
+      console.error('Blog fetch error:', error);
     } finally {
       setLoadingBlogs(false);
     }
@@ -882,7 +884,6 @@ const AdminDashboard: React.FC = () => {
       
       if (response.success) {
         setProjects(response.data);
-        // Note: The current API doesn't return pagination, so we'll handle it differently
         setProjectPagination({
           currentPage: projectFilters.page,
           totalPages: Math.ceil(response.data.length / projectFilters.limit),
@@ -891,10 +892,12 @@ const AdminDashboard: React.FC = () => {
           hasPrev: projectFilters.page > 1
         });
       } else {
-        setProjectError('Failed to load projects');
+        setProjectError(response.message || 'Failed to load projects');
+        console.error('Project API error:', response);
       }
-    } catch (error) {
-      setProjectError('Failed to load projects');
+    } catch (error: any) {
+      setProjectError(error?.response?.data?.message || error?.message || 'Failed to load projects');
+      console.error('Project fetch error:', error);
     } finally {
       setLoadingProjects(false);
     }
@@ -1531,6 +1534,7 @@ const AdminDashboard: React.FC = () => {
                 ) : projectError ? (
                   <div className="p-8 text-center">
                     <div className="text-red-400">{projectError}</div>
+                    <div className="text-xs text-gray-500 mt-2">Check the browser console for more details.</div>
                   </div>
                 ) : projects.length === 0 ? (
                   <div className="p-8 text-center">
@@ -1776,6 +1780,7 @@ const AdminDashboard: React.FC = () => {
                 ) : blogError ? (
                   <div className="p-8 text-center">
                     <div className="text-red-400">{blogError}</div>
+                    <div className="text-xs text-gray-500 mt-2">Check the browser console for more details.</div>
                   </div>
                 ) : blogPosts.length === 0 ? (
                   <div className="p-8 text-center">

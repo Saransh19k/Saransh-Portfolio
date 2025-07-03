@@ -1,11 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Project = require('../models/Project');
-
-// Sample projects data (in production, use database)
-let projects = [
-  // No default projects. Add your own projects here.
-];
+const { Project } = require('../models');
 
 // Get all projects
 router.get('/', async (req, res) => {
@@ -36,45 +31,24 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const project = projects.find(p => p.id === parseInt(id));
-    
+    const project = await Project.findByPk(id);
     if (!project) {
-      return res.status(404).json({
-        success: false,
-        message: 'Project not found'
-      });
+      return res.status(404).json({ success: false, message: 'Project not found' });
     }
-    
     // Increment views
     project.views++;
-    
-    res.json({
-      success: true,
-      data: project
-    });
-    
+    await project.save();
+    res.json({ success: true, data: project });
   } catch (error) {
     console.error('Get project error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch project'
-    });
+    res.status(500).json({ success: false, message: 'Failed to fetch project' });
   }
 });
 
 // Create new project (admin only)
 router.post('/', async (req, res) => {
   try {
-    const {
-      title,
-      description,
-      image,
-      technologies,
-      category,
-      liveUrl,
-      githubUrl,
-      featured = false
-    } = req.body;
+    const { title, description, image, technologies, category, liveUrl, githubUrl, featured = false } = req.body;
     const newProject = await Project.create({
       title,
       description,
@@ -88,17 +62,10 @@ router.post('/', async (req, res) => {
       likes: 0,
       completedAt: new Date()
     });
-    res.status(201).json({
-      success: true,
-      message: 'Project created successfully',
-      data: newProject
-    });
+    res.status(201).json({ success: true, message: 'Project created successfully', data: newProject });
   } catch (error) {
     console.error('Create project error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create project'
-    });
+    res.status(500).json({ success: false, message: 'Failed to create project' });
   }
 });
 
@@ -107,33 +74,15 @@ router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
-    
-    const projectIndex = projects.findIndex(p => p.id === parseInt(id));
-    
-    if (projectIndex === -1) {
-      return res.status(404).json({
-        success: false,
-        message: 'Project not found'
-      });
+    const project = await Project.findByPk(id);
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
     }
-    
-    projects[projectIndex] = {
-      ...projects[projectIndex],
-      ...updateData
-    };
-    
-    res.json({
-      success: true,
-      message: 'Project updated successfully',
-      data: projects[projectIndex]
-    });
-    
+    await project.update(updateData);
+    res.json({ success: true, message: 'Project updated successfully', data: project });
   } catch (error) {
     console.error('Update project error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update project'
-    });
+    res.status(500).json({ success: false, message: 'Failed to update project' });
   }
 });
 
@@ -141,29 +90,15 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const projectIndex = projects.findIndex(p => p.id === parseInt(id));
-    
-    if (projectIndex === -1) {
-      return res.status(404).json({
-        success: false,
-        message: 'Project not found'
-      });
+    const project = await Project.findByPk(id);
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
     }
-    
-    const deletedProject = projects.splice(projectIndex, 1)[0];
-    
-    res.json({
-      success: true,
-      message: 'Project deleted successfully',
-      data: deletedProject
-    });
-    
+    await project.destroy();
+    res.json({ success: true, message: 'Project deleted successfully', data: project });
   } catch (error) {
     console.error('Delete project error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete project'
-    });
+    res.status(500).json({ success: false, message: 'Failed to delete project' });
   }
 });
 
@@ -171,59 +106,39 @@ router.delete('/:id', async (req, res) => {
 router.post('/:id/like', async (req, res) => {
   try {
     const { id } = req.params;
-    const project = projects.find(p => p.id === parseInt(id));
-    
+    const project = await Project.findByPk(id);
     if (!project) {
-      return res.status(404).json({
-        success: false,
-        message: 'Project not found'
-      });
+      return res.status(404).json({ success: false, message: 'Project not found' });
     }
-    
     project.likes++;
-    
-    res.json({
-      success: true,
-      message: 'Project liked successfully',
-      data: { likes: project.likes }
-    });
-    
+    await project.save();
+    res.json({ success: true, message: 'Project liked successfully', data: { likes: project.likes } });
   } catch (error) {
     console.error('Like project error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to like project'
-    });
+    res.status(500).json({ success: false, message: 'Failed to like project' });
   }
 });
 
 // Get project categories
 router.get('/categories/list', async (req, res) => {
   try {
+    const projects = await Project.findAll({ attributes: ['category'] });
     const categories = [...new Set(projects.map(project => project.category))];
-    
-    res.json({
-      success: true,
-      data: categories
-    });
-    
+    res.json({ success: true, data: categories });
   } catch (error) {
     console.error('Get categories error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch categories'
-    });
+    res.status(500).json({ success: false, message: 'Failed to fetch categories' });
   }
 });
 
 // Get project statistics
 router.get('/stats/overview', async (req, res) => {
   try {
+    const projects = await Project.findAll();
     const totalProjects = projects.length;
     const featuredProjects = projects.filter(p => p.featured).length;
     const totalViews = projects.reduce((sum, p) => sum + p.views, 0);
     const totalLikes = projects.reduce((sum, p) => sum + p.likes, 0);
-    
     const categoryStats = {};
     projects.forEach(project => {
       if (!categoryStats[project.category]) {
@@ -231,22 +146,19 @@ router.get('/stats/overview', async (req, res) => {
       }
       categoryStats[project.category]++;
     });
-    
     const topTechnologies = {};
     projects.forEach(project => {
-      project.technologies.forEach(tech => {
+      (project.technologies || []).forEach(tech => {
         if (!topTechnologies[tech]) {
           topTechnologies[tech] = 0;
         }
         topTechnologies[tech]++;
       });
     });
-    
     const topTech = Object.entries(topTechnologies)
       .map(([tech, count]) => ({ tech, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
-    
     res.json({
       success: true,
       data: {
@@ -254,19 +166,15 @@ router.get('/stats/overview', async (req, res) => {
         featuredProjects,
         totalViews,
         totalLikes,
-        averageViews: Math.round(totalViews / totalProjects),
-        averageLikes: Math.round(totalLikes / totalProjects),
+        averageViews: totalProjects ? Math.round(totalViews / totalProjects) : 0,
+        averageLikes: totalProjects ? Math.round(totalLikes / totalProjects) : 0,
         categoryStats,
         topTechnologies: topTech
       }
     });
-    
   } catch (error) {
     console.error('Get project stats error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch project statistics'
-    });
+    res.status(500).json({ success: false, message: 'Failed to fetch project statistics' });
   }
 });
 

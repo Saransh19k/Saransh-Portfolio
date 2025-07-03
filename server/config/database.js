@@ -1,9 +1,10 @@
+require('dotenv').config();
 const { Sequelize } = require('sequelize');
 const path = require('path');
 
 // Database configuration
 const config = {
-  development: {
+  sqlite: {
     dialect: 'sqlite',
     storage: path.join(__dirname, '../database/development.db'),
     logging: false,
@@ -20,61 +21,43 @@ const config = {
       timestamps: true,
       underscored: true
     }
-  },
-  production: {
-    dialect: 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 5432,
-    username: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'saransh_portfolio',
-    logging: false,
-    define: {
-      timestamps: true,
-      underscored: true
-    },
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000
-    }
   }
 };
 
-const env = process.env.NODE_ENV || 'development';
-const dbConfig = config[env];
+// Create Sequelize instance for SQLite only
+const sequelizeSqlite = new Sequelize(config.sqlite);
 
-// Create Sequelize instance
-const sequelize = new Sequelize(dbConfig);
-
-// Test database connection
-const testConnection = async () => {
+// Utility: Test database connection
+const testConnection = async (sequelizeInstance) => {
   try {
-    await sequelize.authenticate();
-    console.log('✅ Database connection established successfully.');
+    await sequelizeInstance.authenticate();
+    console.log('\u2705 Database connection established successfully.');
     return true;
   } catch (error) {
-    console.error('❌ Unable to connect to the database:', error.message);
+    console.error('\u274c Unable to connect to the database:', error.message);
     return false;
   }
 };
 
-// Sync database (create tables if they don't exist)
-const syncDatabase = async (force = false) => {
+// Utility: Sync database (create tables if they don't exist)
+const syncDatabase = async (sequelizeInstance, force = false) => {
   try {
-    await sequelize.sync({ force, alter: !force });
-    console.log('✅ Database synchronized successfully.');
+    await sequelizeInstance.sync({ force, alter: !force });
+    console.log('\u2705 Database synchronized successfully.');
     return true;
   } catch (error) {
-    console.error('❌ Error synchronizing database:', error.message);
+    console.error('\u274c Error synchronizing database:', error.message);
     return false;
   }
 };
+
+// For SQLite
+const sqlite3 = require('sqlite3').verbose();
+const dbSqlite = new sqlite3.Database('./server/database/development.db');
 
 module.exports = {
-  sequelize,
+  sequelizeSqlite,
   testConnection,
   syncDatabase,
-  config: dbConfig
+  dbSqlite
 }; 

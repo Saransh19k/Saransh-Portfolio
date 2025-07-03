@@ -1,8 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Blog = require('../models/Blog');
-const Contact = require('../models/Contact');
-const Project = require('../models/Project');
+const { Blog, Contact, Project } = require('../models');
 
 // In-memory storage for analytics (in production, use Redis or database)
 let analytics = {

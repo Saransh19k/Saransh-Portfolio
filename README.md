@@ -27,6 +27,11 @@ A modern, feature-rich portfolio showcasing full-stack development skills with c
 - **Markdown Support** - Blog posts with syntax highlighting
 - **Image Optimization** - Sharp integration for optimized images
 - **Protected Routes** - Role-based access control for admin and user pages
+- **User Management (Admin Dashboard)** - Create, edit, delete, activate/deactivate users; manage user roles and permissions; filter and paginate users.
+- **Recent Activity Feed** - Real-time log of admin and user actions for transparency and monitoring.
+- **Settings Management** - Edit site-wide settings such as title, description, theme, social links, and maintenance mode directly from the dashboard.
+- **Advanced Analytics** - Overview, device stats, referrer stats, traffic patterns, and analytics reset from the dashboard.
+- **Accessibility** - Keyboard navigation, ARIA labels, and screen reader support throughout the app.
 
 ### 🔧 Backend Features
 - **Node.js/Express API** - RESTful backend with comprehensive endpoints
@@ -94,7 +99,6 @@ A modern, feature-rich portfolio showcasing full-stack development skills with c
 - **Express.js 4.18.2** - Web framework
 - **Sequelize 6.35.2** - Database ORM
 - **SQLite3 5.1.6** - Development database
-- **PostgreSQL 8.11.3** - Production database
 - **Nodemailer 6.9.7** - Email functionality
 - **Multer 1.4.5-lts.1** - File upload handling
 - **Sharp 0.33.0** - Image processing
@@ -396,6 +400,39 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Three.js for 3D graphics capabilities
 - Express.js for the robust backend framework
 - Sequelize for the excellent ORM
+
+## Database Configuration: SQLite & PostgreSQL
+
+This project supports both SQLite (default for development) and PostgreSQL (recommended for production).
+
+### 1. Install dependencies
+
+```
+npm install
+```
+
+### 2. Configure your database
+
+Create a `.env` file in the root or `server/` directory. See `.env.example` for options.
+
+#### For SQLite (default):
+```
+DB_DIALECT=sqlite
+```
+
+#### For PostgreSQL:
+```
+DB_DIALECT=postgres
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=yourpassword
+DB_NAME=saransh_portfolio
+```
+
+### 3. Switch databases
+
+Change the `DB_DIALECT` value in your `.env` file to `sqlite` or `postgres` as needed.
 
 ---
 

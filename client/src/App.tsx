@@ -20,6 +20,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
+import Profile from './pages/Profile';
 
 // Context
 import { useTheme } from './context/ThemeContext';
@@ -191,6 +192,21 @@ const AppContent: React.FC = () => {
                 >
                   <Contact />
                 </motion.div>
+              } 
+            />
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <Profile />
+                  </motion.div>
+                </ProtectedRoute>
               } 
             />
           </Routes>

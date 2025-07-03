@@ -1,17 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import axios from 'axios';
+import { contactAPI } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
 const Contact: React.FC = () => {
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
+    email: user?.email || '',
     subject: '',
     message: ''
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [userMessages, setUserMessages] = useState<any[]>([]);
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupError, setLookupError] = useState('');
 
   const socialLinks = [
     {
@@ -40,6 +45,23 @@ const Contact: React.FC = () => {
     }
   ];
 
+  useEffect(() => {
+    if (isAuthenticated && user?.email) {
+      setFormData(f => ({ ...f, email: user.email }));
+      setLookupLoading(true);
+      setLookupError('');
+      contactAPI.getByEmail(user.email)
+        .then(res => {
+          setUserMessages(res.data.contacts);
+          if (res.data.contacts.length === 0) {
+            setLookupError('No messages found.');
+          }
+        })
+        .catch(() => setLookupError('Failed to fetch messages.'))
+        .finally(() => setLookupLoading(false));
+    }
+  }, [isAuthenticated, user]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
       ...formData,
@@ -51,17 +73,37 @@ const Contact: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
-
     try {
-      await axios.post('/api/contact', formData);
+      await contactAPI.submit({
+        name: formData.name,
+        email: user?.email || '',
+        subject: formData.subject,
+        message: formData.message
+      });
       setSuccess(true);
-      setFormData({ name: '', email: '', subject: '', message: '' });
+      setFormData({ name: '', email: user?.email || '', subject: '', message: '' });
+      if (user?.email) {
+        setLookupLoading(true);
+        contactAPI.getByEmail(user.email)
+          .then(res => setUserMessages(res.data.contacts))
+          .finally(() => setLookupLoading(false));
+      }
     } catch (error: any) {
       setError(error.response?.data?.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
   };
+
+  if (authLoading) return <div className="min-h-screen flex items-center justify-center text-white">Loading...</div>;
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center text-white">
+        <h2 className="text-2xl font-bold mb-4">Please log in to contact us or view your messages.</h2>
+        <a href="/login" className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded font-medium">Go to Login</a>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen pt-20 px-4">
@@ -138,10 +180,10 @@ const Contact: React.FC = () => {
                     type="email"
                     id="email"
                     name="email"
-                    value={formData.email}
-                    onChange={handleChange}
+                    value={user?.email || ''}
+                    disabled
                     required
-                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-indigo-500 transition-colors duration-200"
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-indigo-500 transition-colors duration-200 opacity-60 cursor-not-allowed"
                     placeholder="your.email@example.com"
                   />
                 </div>
@@ -274,6 +316,39 @@ const Contact: React.FC = () => {
               </div>
             </div>
           </motion.div>
+        </div>
+
+        {/* User Message Lookup Section */}
+        <div className="max-w-2xl mx-auto mt-16 bg-gray-900 p-8 rounded-lg shadow-lg">
+          <h2 className="text-2xl font-bold mb-4 text-white">Your Messages & Replies</h2>
+          {lookupLoading && <div className="text-gray-300 mb-4">Loading...</div>}
+          {lookupError && <div className="text-red-500 mb-4">{lookupError}</div>}
+          {userMessages.length > 0 && (
+            <div className="space-y-6">
+              {userMessages.map((msg, idx) => (
+                <div key={msg.id} className="bg-gray-800 p-4 rounded-lg">
+                  <div className="mb-2">
+                    <span className="font-semibold text-white">Subject:</span> <span className="text-gray-300">{msg.subject}</span>
+                  </div>
+                  <div className="mb-2">
+                    <span className="font-semibold text-white">Message:</span> <span className="text-gray-300">{msg.message}</span>
+                  </div>
+                  <div className="mb-2">
+                    <span className="font-semibold text-white">Status:</span> <span className="text-gray-400">{msg.status}</span>
+                  </div>
+                  {msg.replyMessage && (
+                    <div className="mt-2 p-3 bg-green-900 rounded">
+                      <span className="font-semibold text-green-400">Admin Reply:</span>
+                      <div className="text-green-200 mt-1">{msg.replyMessage}</div>
+                    </div>
+                  )}
+                  {!msg.replyMessage && (
+                    <div className="mt-2 text-yellow-400">No reply yet.</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const { sequelizeSqlite } = require('../config/database');
+const User = require('../models/User')(sequelizeSqlite);
 const { validateUserRegistration, validateUserLogin, validateAdminLogin } = require('../middleware/validation');
 
 // Generate JWT token

@@ -10,7 +10,7 @@ const About: React.FC = () => {
     { name: 'React', level: 90, color: '#61DAFB' },
     { name: 'Node.js', level: 85, color: '#339933' },
     { name: 'TypeScript', level: 80, color: '#3178C6' },
-    { name: 'SQL/PostgreSQL', level: 75, color: '#336791' },
+    { name: 'SQLite', level: 75, color: '#003B57' },
     { name: 'Python', level: 70, color: '#3776AB' },
     { name: 'AWS', level: 65, color: '#FF9900' },
   ];

@@ -38,7 +38,7 @@ A comprehensive, feature-rich full-stack portfolio built with modern web technol
 
 ### Backend Stack
 - **Node.js 18+** with Express.js 4.18.2 framework
-- **SQLite** (development) / **PostgreSQL** (production) with Sequelize 6.35.2 ORM
+- **SQLite** (development) with Sequelize 6.35.2 ORM
 - **Nodemailer 6.9.7** for email functionality
 - **Multer 1.4.5-lts.1** for file uploads
 - **JWT 9.0.2** for authentication
@@ -279,7 +279,7 @@ Saransh Portfolio/
 ### Prerequisites
 - Node.js (v16 or higher)
 - npm or yarn
-- SQLite (development) / PostgreSQL (production)
+- SQLite (development)
 
 ### Quick Start
 ```bash
@@ -318,4 +318,29 @@ npm run dev
 
 This portfolio project represents a comprehensive full-stack application showcasing modern web development practices, advanced features, and professional design. The dual-system architecture demonstrates sophisticated user management and role-based access control, while the interactive elements and responsive design provide an engaging user experience.
 
-The project is production-ready with proper security measures, performance optimizations, and comprehensive documentation. It serves as an excellent example of modern web development best practices and can be easily extended with additional features and integrations. 
+The project is production-ready with proper security measures, performance optimizations, and comprehensive documentation. It serves as an excellent example of modern web development best practices and can be easily extended with additional features and integrations.
+
+## 🛠️ Admin Dashboard Features
+
+- **User Management**: Create, edit, delete, activate/deactivate users; manage user roles and permissions; filter and paginate users.
+- **Recent Activity Feed**: Real-time log of admin and user actions for transparency and monitoring.
+- **Settings Management**: Edit site-wide settings such as title, description, theme, social links, and maintenance mode directly from the dashboard.
+- **Quick Actions**: Fast navigation to add projects, create blog posts, view analytics, and manage settings.
+
+## 📊 Advanced Analytics
+
+- **Overview**: Total visitors, page views, unique visitors, and average pages per visitor.
+- **Device & Referrer Stats**: Track device types and referrer sources.
+- **Traffic Patterns**: Analyze daily/hourly traffic and user engagement.
+- **Reset Analytics**: Admin can reset all analytics data from the dashboard.
+
+## 📝 Project & Blog Management
+
+- **Project Model**: Now includes `views`, `likes`, `featured`, and `completedAt` fields for richer project insights.
+- **Blog Management**: Blog posts support status (draft/published/archived), tags, categories, author info, and read time.
+
+## ♿ Accessibility & UI/UX Improvements
+
+- **Accessibility**: Keyboard navigation, ARIA labels, and screen reader support throughout the app.
+- **Conditional Navbar/Footer**: Navbar and footer are shown or hidden based on the current route for a cleaner experience.
+- **Animated Transitions**: Framer Motion powers all major UI transitions and micro-interactions. 

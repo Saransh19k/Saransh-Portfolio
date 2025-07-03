@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://192.168.29.164:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
 // Create axios instance
 const api = axios.create({
@@ -176,6 +176,11 @@ export const contactAPI = {
 
   reply: async (id: number, replyMessage: string) => {
     const response = await api.post(`/contact/${id}/reply`, { replyMessage });
+    return response.data;
+  },
+
+  getByEmail: async (email: string) => {
+    const response = await api.get(`/contact/by-email`, { params: { email } });
     return response.data;
   },
 };

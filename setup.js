@@ -46,7 +46,6 @@ PORT=5000
 # For production, set these variables:
 # DB_HOST=localhost
 # DB_PORT=5432
-# DB_USER=postgres
 # DB_PASSWORD=your_password
 # DB_NAME=saransh_portfolio
 
@@ -130,10 +129,7 @@ const readmeContent = `# Saransh Portfolio Setup Complete! 🎉
 
 ## Database
 
-This project uses SQLite for development and PostgreSQL for production:
-
-- **Development**: SQLite database file at \`server/database/development.sqlite\`
-- **Production**: Configure PostgreSQL in your \`.env\` file
+This project uses SQLite for development.
 
 ## Available Scripts
 
@@ -156,7 +152,7 @@ Copy \`.env.example\` to \`.env\` and configure:
 
 ✅ React 18 with TypeScript
 ✅ Node.js with Express
-✅ SQLite/PostgreSQL with Sequelize
+✅ SQLite with Sequelize
 ✅ Tailwind CSS for styling
 ✅ Framer Motion animations
 ✅ Three.js 3D effects

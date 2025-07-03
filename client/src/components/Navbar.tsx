@@ -131,14 +131,14 @@ const Navbar: React.FC = () => {
             {/* User Menu - Show when authenticated */}
             {!isIntroducePage && isAuthenticated && (
               <div className="hidden md:flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
+                <Link to="/profile" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
                   <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center">
                     <span className="text-white text-sm font-medium">
                       {user?.name?.charAt(0) || user?.email?.charAt(0) || 'U'}
                     </span>
                   </div>
                   <span className="text-gray-300 text-sm">{user?.name || user?.email}</span>
-                </div>
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white border border-gray-600 hover:border-gray-500 rounded-lg transition-colors"
